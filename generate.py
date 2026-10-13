@@ -48,15 +48,22 @@ def fetch(sym):
     raise last
 
 
-def parse(d):
+def parse(d, sym=""):
     res = d["chart"]["result"][0]
     meta = res["meta"]
     off = meta.get("gmtoffset", 0) or 0
-    closes = res["indicators"]["quote"][0]["close"]
+    quote = res["indicators"]["quote"][0]
+    closes = quote["close"]
     by_day = {}
-    for t, c in zip(res["timestamp"], closes):
+    for i, (t, c) in enumerate(zip(res["timestamp"], closes)):
         if c is None:
             continue
+        if sym == "^TNX":
+            # On US bond market holidays Yahoo returns a flat placeholder bar (open = high = low = close).
+            # Only applied to ^TNX: foreign exchange bars are often flat for real.
+            o, h, l = quote["open"][i], quote["high"][i], quote["low"][i]
+            if o is not None and o == h == l == c:
+                continue
         by_day[fmt_day(t, off)] = round(c, 4)  # exchange-local date; a later bar of the same date wins
     pts = [[d, v] for d, v in sorted(by_day.items())]
     rt = meta.get("regularMarketTime")
@@ -76,7 +83,7 @@ def main():
     for sym, name, unit, grp in SERIES:
         item = {"sym": sym, "name": name, "unit": unit, "grp": grp}
         try:
-            pts, reg = parse(fetch(sym))
+            pts, reg = parse(fetch(sym), sym)
             if len(pts) < 30:
                 raise ValueError("too few points: %d" % len(pts))
             item.update({"regTime": reg, "pts": pts})
