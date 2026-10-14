@@ -1,11 +1,13 @@
 name: update-data
 
-# Cron times are UTC. 00:30 UTC = 08:30 Taiwan, 07:30 UTC = 15:30 Taiwan, Monday to Friday.
-# GitHub may delay scheduled runs by 5 to 20 minutes. Default times, not yet checked against exchange closes.
+# Cron times are UTC, Monday to Friday. Runs every 3 hours at minute 17 (00:17, 03:17, ... 21:17 UTC).
+# Taiwan time is UTC+8, so these are 08:17, 11:17, 14:17, 17:17, 20:17, 23:17, 02:17, 05:17.
+# GitHub scheduled runs can be delayed. Observed on 2026-10-13: one scheduled run started about 7h42m after
+# the nearest planned time. Several runs per day are used so that one late or skipped run does not leave
+# the data stale for a whole morning. The commit step does nothing when data did not change.
 on:
   schedule:
-    - cron: "30 0 * * 1-5"
-    - cron: "30 7 * * 1-5"
+    - cron: "17 */3 * * 1-5"
   workflow_dispatch:
 
 permissions:
